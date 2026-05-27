@@ -8,8 +8,8 @@ DockerZynthian wraps a QEMU VM inside a container and boots an official Zynthian
    - fetches latest stable image archive from `https://os.zynthian.org/` (or uses `ZYNTHIAN_IMAGE_URL`).
 2. `prepare-image.sh`
    - extracts `.img` from archive
-   - stores persistent disk at `/data/zynthian.img`
-   - extracts boot files (`kernel8.img`, `*.dtb`) from partition 1 to `/data/bootfiles`
+   - stores persistent disk at `${IMAGE_PATH}` (default `/data/zynthian.img`)
+   - extracts boot files (`kernel8.img`, `*.dtb`) from partition 1 to `${BOOT_DIR}` (default `/data/bootfiles`)
 3. `run-qemu.sh`
    - starts `qemu-system-aarch64`
    - emulates `raspi4b` by default (`raspi3b` optional)
@@ -17,9 +17,10 @@ DockerZynthian wraps a QEMU VM inside a container and boots an official Zynthian
 
 ## Persistence
 
-- `/data/zynthian.img` contains guest system state.
-- `/data/downloads` keeps source archives.
-- `/data/bootfiles` keeps extracted kernel/DTB files.
+- `${IMAGE_PATH}` contains guest system state.
+- `${DOWNLOAD_DIR}` keeps source archives.
+- `${BOOT_DIR}` keeps extracted kernel/DTB files.
+- `run-qemu.sh` / `prepare-image.sh` search both `${DOWNLOAD_DIR}` and `${DATA_DIR}` for existing archives before downloading.
 
 ## Networking model
 

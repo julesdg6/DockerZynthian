@@ -22,12 +22,31 @@ QEMU_VNC_PORT=5900
 
 mkdir -p "${DATA_DIR}" "${DOWNLOAD_DIR}" "${BOOT_DIR}"
 
+find_existing_archive() {
+  local archive
+  archive="$(ls -1t \
+    "${DOWNLOAD_DIR}"/*.img "${DOWNLOAD_DIR}"/*.img.xz "${DOWNLOAD_DIR}"/*.xz "${DOWNLOAD_DIR}"/*.zip "${DOWNLOAD_DIR}"/*.gz \
+    "${DATA_DIR}"/*.img "${DATA_DIR}"/*.img.xz "${DATA_DIR}"/*.xz "${DATA_DIR}"/*.zip "${DATA_DIR}"/*.gz \
+    2>/dev/null | head -n1 || true)"
+  if [[ -n "${archive}" && -f "${archive}" ]]; then
+    printf '%s' "${archive}"
+    return 0
+  fi
+  return 1
+}
+
 if [[ ! -f "${IMAGE_PATH}" ]]; then
-  ARCHIVE_PATH="$(/usr/local/bin/download-zynthian-image.sh)"
+  ARCHIVE_PATH="$(find_existing_archive || true)"
+  if [[ -z "${ARCHIVE_PATH}" ]]; then
+    ARCHIVE_PATH="$(/usr/local/bin/download-zynthian-image.sh)"
+  fi
   /usr/local/bin/prepare-image.sh "${ARCHIVE_PATH}"
 elif [[ ! -f "${BOOT_DIR}/kernel8.img" ]]; then
   if ! /usr/local/bin/prepare-image.sh; then
-    ARCHIVE_PATH="$(/usr/local/bin/download-zynthian-image.sh)"
+    ARCHIVE_PATH="$(find_existing_archive || true)"
+    if [[ -z "${ARCHIVE_PATH}" ]]; then
+      ARCHIVE_PATH="$(/usr/local/bin/download-zynthian-image.sh)"
+    fi
     /usr/local/bin/prepare-image.sh "${ARCHIVE_PATH}"
   fi
 fi

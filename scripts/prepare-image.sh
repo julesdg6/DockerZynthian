@@ -8,9 +8,22 @@ BOOT_DIR="${BOOT_DIR:-${DATA_DIR}/bootfiles}"
 
 mkdir -p "${DOWNLOAD_DIR}" "${BOOT_DIR}" "${DATA_DIR}"
 
+find_existing_archive() {
+  local archive
+  archive="$(ls -1t \
+    "${DOWNLOAD_DIR}"/*.img "${DOWNLOAD_DIR}"/*.img.xz "${DOWNLOAD_DIR}"/*.xz "${DOWNLOAD_DIR}"/*.zip "${DOWNLOAD_DIR}"/*.gz \
+    "${DATA_DIR}"/*.img "${DATA_DIR}"/*.img.xz "${DATA_DIR}"/*.xz "${DATA_DIR}"/*.zip "${DATA_DIR}"/*.gz \
+    2>/dev/null | head -n1 || true)"
+  if [[ -n "${archive}" && -f "${archive}" ]]; then
+    printf '%s' "${archive}"
+    return 0
+  fi
+  return 1
+}
+
 ARCHIVE_PATH="${1:-}"
 if [[ -z "${ARCHIVE_PATH}" ]]; then
-  ARCHIVE_PATH="$(ls -1t "${DOWNLOAD_DIR}"/* 2>/dev/null | head -n1 || true)"
+  ARCHIVE_PATH="$(find_existing_archive || true)"
 fi
 
 if [[ -z "${ARCHIVE_PATH}" || ! -f "${ARCHIVE_PATH}" ]]; then
@@ -66,7 +79,7 @@ fi
 
 # Prefer sfdisk dump parsing for consistent "start=" extraction from partition 1.
 # sfdisk dump example: "<image>1 : start= 8192, ..."; extract first partition start sector.
-START_SECTOR="$(sfdisk -d "${IMAGE_PATH}" 2>/dev/null | awk -v img="${IMAGE_PATH}" 'index($0, img) == 1 && match($0, /start= *([0-9]+)/, m) {print m[1]; exit}')"
+START_SECTOR="$(sfdisk -d "${IMAGE_PATH}" 2>/dev/null | sed -nE 's/.*start= *([0-9]+).*/\1/p' | head -n1)"
 if [[ -z "${START_SECTOR}" ]]; then
   START_SECTOR="$(fdisk -l "${IMAGE_PATH}" | awk -v img="${IMAGE_PATH}" 'BEGIN { pattern = "^" img "[0-9]+$" } $1 ~ pattern && $2 ~ /^[0-9]+$/ {print $2; exit }')"
 fi
