@@ -23,42 +23,108 @@ Run the **official ZynthianOS Raspberry Pi image** inside Docker/Unraid using QE
   - VNC guest `5900` -> container `5900`
 - Docker/Compose publishes those container ports to configurable host ports.
 
-## Quick start (docker compose)
+## Full Docker installation
+
+### Prerequisites
+
+- Docker Engine 24+ (or Docker Desktop) on a **Linux x86_64** host.
+- `docker compose` plugin (v2) — included with recent Docker Desktop and Docker Engine installs.
+- Internet access for the first-run ZynthianOS image download (~1–2 GB compressed).
+- At least **4 GB RAM** available for the container, and **20 GB free disk** for the persistent image.
+
+### Option A — docker compose (recommended)
+
+1. **Clone this repository:**
+
+   ```bash
+   git clone https://github.com/julesdg6/DockerZynthian.git
+   cd DockerZynthian
+   ```
+
+2. **Start the container (builds locally on first run):**
+
+   ```bash
+   docker compose up --build
+   ```
+
+   Run compose from the repository root so `./data` mounts correctly.
+
+3. **On first start** the container automatically downloads and prepares the official ZynthianOS Raspberry Pi image. This takes several minutes depending on your connection speed. Watch the logs for progress:
+
+   ```bash
+   docker compose logs -f
+   ```
+
+4. **Access the services once the guest has booted:**
+
+   | Service            | URL / command                          |
+   |--------------------|----------------------------------------|
+   | Webconf / web UI   | `http://localhost:8080`                |
+   | noVNC (if active)  | `http://localhost:6080`                |
+   | SSH into guest     | `ssh -p 2222 root@localhost`           |
+
+5. **Stop and restart:**
+
+   ```bash
+   docker compose down   # stop (persistent image in ./data is preserved)
+   docker compose up     # restart without rebuilding
+   ```
+
+### Option B — manual `docker run`
+
+Use this if you prefer not to use Compose or want full control over every flag.
+
+1. **Build the image:**
+
+   ```bash
+   docker build -t dockerzynthian .
+   ```
+
+2. **Run the container:**
+
+   ```bash
+   docker run --rm -it \
+     --name dockerzynthian \
+     --privileged \
+     -e MEMORY_MB=3072 \
+     -e PI_MODEL=pi4 \
+     -e SSH_PORT=2222 \
+     -e WEBCONF_PORT=8080 \
+     -e HTTPS_PORT=8443 \
+     -e NOVNC_PORT=6080 \
+     -e VNC_PORT=5900 \
+     -v dockerzynthian-data:/data \
+     -p 2222:2222 \
+     -p 8080:8080 \
+     -p 8443:8443 \
+     -p 6080:6080 \
+     -p 5900:5900 \
+     dockerzynthian
+   ```
+
+   Replace `-v dockerzynthian-data:/data` with `-v /path/on/host:/data` if you prefer a bind mount.
+
+3. **Access the services** using the same URLs listed in Option A.
+
+### Using a pre-built image from Docker Hub
+
+If you don't want to build locally, pull the published image directly:
 
 ```bash
-docker compose up --build
-```
-
-Run compose from the repository root so `./data` binds correctly.
-
-Then open:
-
-- `http://localhost:8080` (Webconf / web UI)
-- `http://localhost:6080` (if noVNC is active in the guest)
-- `ssh -p 2222 root@localhost`
-
-## Manual Docker run
-
-```bash
-docker build -t dockerzynthian .
+docker pull julesdg6/dockerzynthian:latest
 
 docker run --rm -it \
   --name dockerzynthian \
   --privileged \
   -e MEMORY_MB=3072 \
   -e PI_MODEL=pi4 \
-  -e SSH_PORT=2222 \
-  -e WEBCONF_PORT=8080 \
-  -e HTTPS_PORT=8443 \
-  -e NOVNC_PORT=6080 \
-  -e VNC_PORT=5900 \
   -v dockerzynthian-data:/data \
   -p 2222:2222 \
   -p 8080:8080 \
   -p 8443:8443 \
   -p 6080:6080 \
   -p 5900:5900 \
-  dockerzynthian
+  julesdg6/dockerzynthian:latest
 ```
 
 ## Image workflow
@@ -71,12 +137,12 @@ The container entrypoint (`scripts/run-qemu.sh`) does:
 
 ## Unraid
 
-Template is included at `unraid/DockerZynthian.xml`.
+Template is included at `unraid/DockerZynthian.xml`. The Zynthian logo (`docs/icon.png`) is referenced by the template and displayed automatically in the Unraid Docker tab.
 
 See docs:
 
+- `docs/unraid.md` — full setup steps, wget icon instructions, and Community Apps import guide
 - `docs/architecture.md`
-- `docs/unraid.md`
 - `docs/usb-passthrough.md`
 - `docs/troubleshooting.md`
 

@@ -1,11 +1,34 @@
 # Unraid setup
 
-1. Build/publish image (or point template to your own registry tag).
-2. In Unraid Community Apps, import `unraid/DockerZynthian.xml`.
-3. Keep container **Privileged=true**.
-4. Map `/data` to `/mnt/user/appdata/dockerzynthian`.
-5. Start container and wait for first boot preparation (download + extract).
-6. Open Web UI at `http://<unraid-ip>:8080`.
+## Installing via Community Applications (CA)
+
+1. In Unraid, open **Apps** (Community Applications plugin required).
+2. Search for **DockerZynthian** or click **Add Container** and paste the template URL:
+   ```
+   https://raw.githubusercontent.com/julesdg6/DockerZynthian/main/unraid/DockerZynthian.xml
+   ```
+3. Keep **Privileged** set to `true`.
+4. Set the **AppData** path to `/mnt/user/appdata/dockerzynthian` (default).
+5. Adjust **RAM MB** and **Pi Model** as needed (see recommended settings below).
+6. Click **Apply** and wait for the container to pull the image.
+7. On first start the container downloads and prepares the ZynthianOS image — this may take several minutes depending on your connection speed.
+8. Open the Web UI at `http://<unraid-ip>:8080`.
+
+## Adding the Zynthian icon on Unraid 7
+
+Unraid 7 looks for container icons in `/boot/config/plugins/dockerMan/images/`. Place the Zynthian logo there so it appears in the Docker tab.
+
+Run the following in the Unraid terminal (or via SSH):
+
+```bash
+mkdir -p /boot/config/plugins/dockerMan/images
+wget -O /boot/config/plugins/dockerMan/images/DockerZynthian.png \
+  https://raw.githubusercontent.com/julesdg6/DockerZynthian/main/docs/icon.png
+```
+
+`wget` prints a summary line such as `'DockerZynthian.png' saved [9420/9420]` when the download succeeds. If you see an error (e.g. `404 Not Found` or a network timeout), verify that the Unraid server has internet access and retry the command.
+
+After a successful download the icon will appear automatically — no reboot required.
 
 ## Recommended initial settings
 
