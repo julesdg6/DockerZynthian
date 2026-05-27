@@ -57,6 +57,10 @@ else
 fi
 
 if [[ -n "${DISK_EXPAND_GB:-}" ]]; then
+  if [[ ! "${DISK_EXPAND_GB}" =~ ^[1-9][0-9]{0,2}$ ]]; then
+    echo "DISK_EXPAND_GB must be a positive integer between 1 and 999." >&2
+    exit 1
+  fi
   qemu-img resize "${IMAGE_PATH}" "+${DISK_EXPAND_GB}G"
 fi
 
