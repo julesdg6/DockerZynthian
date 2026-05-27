@@ -31,7 +31,12 @@ case "${ARCHIVE_PATH}" in
     gzip -dc "${ARCHIVE_PATH}" > "${TMP_IMG}"
     ;;
   *.zip)
-    unzip -p "${ARCHIVE_PATH}" '*.img' > "${TMP_IMG}"
+    ZIP_IMG_ENTRY="$(unzip -Z1 "${ARCHIVE_PATH}" '*.img' | head -n1 || true)"
+    if [[ -z "${ZIP_IMG_ENTRY}" ]]; then
+      echo "Zip archive does not contain an .img file: ${ARCHIVE_PATH}" >&2
+      exit 1
+    fi
+    unzip -p "${ARCHIVE_PATH}" "${ZIP_IMG_ENTRY}" > "${TMP_IMG}"
     ;;
   *)
     echo "Unsupported archive format: ${ARCHIVE_PATH}" >&2
@@ -55,7 +60,12 @@ if [[ -n "${DISK_EXPAND_GB:-}" ]]; then
   qemu-img resize "${IMAGE_PATH}" "+${DISK_EXPAND_GB}G"
 fi
 
-START_SECTOR="$(fdisk -l "${IMAGE_PATH}" | awk '$1 ~ /[0-9]+$/ && $2 ~ /^[0-9]+$/ {print $2; exit}')"
+# Prefer sfdisk dump parsing for consistent "start=" extraction from partition 1.
+# sfdisk dump example: "<image>1 : start= 8192, ..."; extract first partition start sector.
+START_SECTOR="$(sfdisk -d "${IMAGE_PATH}" 2>/dev/null | awk -v img="${IMAGE_PATH}" 'index($0, img) == 1 && match($0, /start= *([0-9]+)/, m) {print m[1]; exit}')"
+if [[ -z "${START_SECTOR}" ]]; then
+  START_SECTOR="$(fdisk -l "${IMAGE_PATH}" | awk -v img="${IMAGE_PATH}" 'BEGIN { pattern = "^" img "[0-9]+$" } $1 ~ pattern && $2 ~ /^[0-9]+$/ {print $2; exit }')"
+fi
 if [[ -z "${START_SECTOR}" ]]; then
   echo "Could not detect boot partition sector offset." >&2
   exit 1
@@ -65,8 +75,8 @@ OFFSET="$((START_SECTOR * 512))"
 rm -f "${BOOT_DIR}"/kernel*.img "${BOOT_DIR}"/*.dtb
 
 # Extract relevant boot files for raspi3/raspi4 QEMU boot
-mcopy -n -i "${IMAGE_PATH}@@${OFFSET}" ::kernel*.img "${BOOT_DIR}/" || true
-mcopy -n -i "${IMAGE_PATH}@@${OFFSET}" ::*.dtb "${BOOT_DIR}/" || true
+mcopy -n -i "${IMAGE_PATH}@@${OFFSET}" ::kernel*.img "${BOOT_DIR}/"
+mcopy -n -i "${IMAGE_PATH}@@${OFFSET}" ::*.dtb "${BOOT_DIR}/"
 
 if [[ ! -f "${BOOT_DIR}/kernel8.img" ]]; then
   echo "kernel8.img not found in boot partition extraction." >&2

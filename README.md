@@ -15,18 +15,21 @@ Run the **official ZynthianOS Raspberry Pi image** inside Docker/Unraid using QE
   - `pi5` currently falls back to `pi4` (QEMU support is limited)
 - Persistent state via `/data/zynthian.img`.
 - Configurable RAM via `MEMORY_MB`.
-- Forwards guest services to container ports:
-  - SSH guest `22` -> container `${SSH_PORT:-2222}`
-  - Webconf / web UI guest `80` -> container `${WEBCONF_PORT:-8080}`
-  - HTTPS guest `443` -> container `${HTTPS_PORT:-8443}`
-  - noVNC guest `6080` -> container `${NOVNC_PORT:-6080}`
-  - VNC guest `5900` -> container `${VNC_PORT:-5900}`
+- QEMU forwards guest services to fixed container ports:
+  - SSH guest `22` -> container `2222`
+  - Webconf / web UI guest `80` -> container `8080`
+  - HTTPS guest `443` -> container `8443`
+  - noVNC guest `6080` -> container `6080`
+  - VNC guest `5900` -> container `5900`
+- Docker/Compose publishes those container ports to configurable host ports.
 
 ## Quick start (docker compose)
 
 ```bash
 docker compose up --build
 ```
+
+Run compose from the repository root so `./data` binds correctly.
 
 Then open:
 
@@ -90,5 +93,5 @@ See docs:
 - `MEMORY_MB` (default `2048`)
 - `PI_MODEL` (`pi3`, `pi4`, `pi5`)
 - `ZYNTHIAN_IMAGE_URL` (optional explicit image archive URL)
-- `SSH_PORT`, `WEBCONF_PORT`, `HTTPS_PORT`, `NOVNC_PORT`, `VNC_PORT`
+- `SSH_PORT`, `WEBCONF_PORT`, `HTTPS_PORT`, `NOVNC_PORT`, `VNC_PORT` (host publish ports in compose)
 - `DISK_EXPAND_GB` (optional, expand persistent image)

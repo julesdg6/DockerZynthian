@@ -7,18 +7,26 @@ mkdir -p "${DOWNLOAD_DIR}"
 
 find_latest_url() {
   local index latest
-  index="$(curl -fsSL "https://os.zynthian.org/" || true)"
+  if ! index="$(curl -fsSL "https://os.zynthian.org/")"; then
+    echo "Failed to fetch https://os.zynthian.org/ for automatic image discovery." >&2
+    return 1
+  fi
+  # Expected index format: links including "stable"/"zynthian" and archive suffixes:
+  # .img.xz, .img.gz, .xz, .gz, .img.zip, or .zip.
   latest="$(printf '%s' "${index}" \
-    | grep -Eo 'href="[^"]*(stable|zynthian)[^"]*\.(img\.(xz|gz)|zip)"' \
+    | grep -Eo 'href="[^"]*(stable|zynthian)[^"]*\.((img\.)?(xz|gz)|img\.zip|zip)"' \
     | sed -E 's/^href="([^"]+)"$/\1/' \
-    | sed -E 's#^/#https://os.zynthian.org/#; s#^https?://#&#; t; s#^#https://os.zynthian.org/#' \
     | tail -n 1)"
+  if [[ -n "${latest}" && "${latest}" != http* ]]; then
+    latest="${latest#/}"
+    latest="https://os.zynthian.org/${latest}"
+  fi
   printf '%s' "${latest}"
 }
 
 IMAGE_URL="${ZYNTHIAN_IMAGE_URL:-}"
 if [[ -z "${IMAGE_URL}" ]]; then
-  IMAGE_URL="$(find_latest_url)"
+  IMAGE_URL="$(find_latest_url || true)"
 fi
 
 if [[ -z "${IMAGE_URL}" ]]; then

@@ -14,6 +14,11 @@ WEBCONF_PORT="${WEBCONF_PORT:-8080}"
 HTTPS_PORT="${HTTPS_PORT:-8443}"
 NOVNC_PORT="${NOVNC_PORT:-6080}"
 VNC_PORT="${VNC_PORT:-5900}"
+QEMU_SSH_PORT=2222
+QEMU_WEBCONF_PORT=8080
+QEMU_HTTPS_PORT=8443
+QEMU_NOVNC_PORT=6080
+QEMU_VNC_PORT=5900
 
 mkdir -p "${DATA_DIR}" "${DOWNLOAD_DIR}" "${BOOT_DIR}"
 
@@ -21,7 +26,10 @@ if [[ ! -f "${IMAGE_PATH}" ]]; then
   ARCHIVE_PATH="$(/usr/local/bin/download-zynthian-image.sh)"
   /usr/local/bin/prepare-image.sh "${ARCHIVE_PATH}"
 elif [[ ! -f "${BOOT_DIR}/kernel8.img" ]]; then
-  /usr/local/bin/prepare-image.sh
+  if ! /usr/local/bin/prepare-image.sh; then
+    ARCHIVE_PATH="$(/usr/local/bin/download-zynthian-image.sh)"
+    /usr/local/bin/prepare-image.sh "${ARCHIVE_PATH}"
+  fi
 fi
 
 KERNEL="${BOOT_DIR}/kernel8.img"
@@ -59,12 +67,14 @@ if [[ -z "${DTB}" ]]; then
   exit 1
 fi
 
-NETDEV="user,id=net0,hostfwd=tcp::${SSH_PORT}-:22,hostfwd=tcp::${WEBCONF_PORT}-:80,hostfwd=tcp::${HTTPS_PORT}-:443,hostfwd=tcp::${NOVNC_PORT}-:6080,hostfwd=tcp::${VNC_PORT}-:5900"
+# QEMU forwards to fixed container ports; Docker/Compose controls host-side port publishing.
+NETDEV="user,id=net0,hostfwd=tcp::${QEMU_SSH_PORT}-:22,hostfwd=tcp::${QEMU_WEBCONF_PORT}-:80,hostfwd=tcp::${QEMU_HTTPS_PORT}-:443,hostfwd=tcp::${QEMU_NOVNC_PORT}-:6080,hostfwd=tcp::${QEMU_VNC_PORT}-:5900"
 
 echo "Booting official ZynthianOS image with QEMU (${PI_MODEL} -> ${MACHINE})"
 echo "Image: ${IMAGE_PATH}"
 echo "RAM: ${MEMORY_MB} MB"
-echo "Forwards: SSH:${SSH_PORT} WEB:${WEBCONF_PORT} HTTPS:${HTTPS_PORT} noVNC:${NOVNC_PORT} VNC:${VNC_PORT}"
+echo "Container forwards: ${QEMU_SSH_PORT}->22 ${QEMU_WEBCONF_PORT}->80 ${QEMU_HTTPS_PORT}->443 ${QEMU_NOVNC_PORT}->6080 ${QEMU_VNC_PORT}->5900"
+echo "Published host ports: SSH:${SSH_PORT} WEB:${WEBCONF_PORT} HTTPS:${HTTPS_PORT} noVNC:${NOVNC_PORT} VNC:${VNC_PORT}"
 
 exec qemu-system-aarch64 \
   -machine "${MACHINE}" \
