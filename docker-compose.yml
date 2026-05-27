@@ -1,0 +1,26 @@
+services:
+  dockerzynthian:
+    build: .
+    container_name: dockerzynthian
+    privileged: true
+    restart: unless-stopped
+    environment:
+      MEMORY_MB: ${MEMORY_MB:-2048}
+      PI_MODEL: ${PI_MODEL:-pi4}
+      SSH_PORT: ${SSH_PORT:-2222}
+      WEBCONF_PORT: ${WEBCONF_PORT:-8080}
+      HTTPS_PORT: ${HTTPS_PORT:-8443}
+      NOVNC_PORT: ${NOVNC_PORT:-6080}
+      VNC_PORT: ${VNC_PORT:-5900}
+      ZYNTHIAN_IMAGE_URL: ${ZYNTHIAN_IMAGE_URL:-}
+      DISK_EXPAND_GB: ${DISK_EXPAND_GB:-}
+    volumes:
+      - ./data:/data
+      # Optional USB passthrough for audio/MIDI:
+      # - /dev/bus/usb:/dev/bus/usb
+    ports:
+      - "${SSH_PORT:-2222}:${SSH_PORT:-2222}"
+      - "${WEBCONF_PORT:-8080}:${WEBCONF_PORT:-8080}"
+      - "${HTTPS_PORT:-8443}:${HTTPS_PORT:-8443}"
+      - "${NOVNC_PORT:-6080}:${NOVNC_PORT:-6080}"
+      - "${VNC_PORT:-5900}:${VNC_PORT:-5900}"
