@@ -78,8 +78,8 @@ if [[ -n "${DISK_EXPAND_GB:-}" ]]; then
 fi
 
 # Prefer sfdisk dump parsing for consistent "start=" extraction from partition 1.
-# sfdisk dump example: "<image>1 : start= 8192, ..."; extract first partition start sector.
-START_SECTOR="$(sfdisk -d "${IMAGE_PATH}" 2>/dev/null | sed -nE 's/.*start= *([0-9]+).*/\1/p' | head -n1)"
+# sfdisk dump example: "<image>1 : start= 8192, ..."; extract the first partition entry sector.
+START_SECTOR="$(sfdisk -d "${IMAGE_PATH}" 2>/dev/null | sed -nE '/:[[:space:]]*start=/ { s/.*start=[[:space:]]*([0-9]+),?.*/\1/p; q; }')"
 if [[ -z "${START_SECTOR}" ]]; then
   START_SECTOR="$(fdisk -l "${IMAGE_PATH}" | awk -v img="${IMAGE_PATH}" 'BEGIN { pattern = "^" img "[0-9]+$" } $1 ~ pattern && $2 ~ /^[0-9]+$/ {print $2; exit }')"
 fi
