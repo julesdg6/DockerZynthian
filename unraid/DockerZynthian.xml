@@ -28,8 +28,13 @@
   <Config Name="Download Dir" Target="DOWNLOAD_DIR" Default="/data/downloads" Mode="" Description="Archive download/cache directory (searched for existing archives)" Type="Variable" Display="advanced" Required="false" Mask="false"/>
   <Config Name="Image Path" Target="IMAGE_PATH" Default="/data/zynthian.img" Mode="" Description="Persistent raw image path used by QEMU" Type="Variable" Display="advanced" Required="false" Mask="false"/>
   <Config Name="Boot Dir" Target="BOOT_DIR" Default="/data/bootfiles" Mode="" Description="Extracted boot files directory" Type="Variable" Display="advanced" Required="false" Mask="false"/>
-  <Config Name="RAM MB" Target="MEMORY_MB" Default="2048" Mode="" Description="RAM allocated to QEMU in MB" Type="Variable" Display="always" Required="true" Mask="false"/>
-  <Config Name="Pi Model" Target="PI_MODEL" Default="pi4" Mode="" Description="pi3 or pi4 (pi5 falls back to pi4)" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="RAM MB" Target="MEMORY_MB" Default="1024" Mode="" Description="RAM allocated to QEMU in MB (raspi3 is clamped to 1024)" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="Pi Model" Target="PI_MODEL" Default="pi3" Mode="" Description="Requested model: pi3, pi4, or pi5 (auto-fallback by QEMU support)" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="Disk Size GB" Target="DISK_SIZE_GB" Default="16" Mode="" Description="Target persistent image size in GiB (power of two)" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="Emulation Stubs" Target="EMULATION_STUBS" Default="1" Mode="" Description="When 1, install I2C/i2cdetect guest stubs for Webconf in emulation" Type="Variable" Display="always" Required="true" Mask="false"/>
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="Owner UID applied to /data outputs" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="Owner GID applied to /data outputs" Type="Variable" Display="advanced" Required="false" Mask="false"/>
   <Config Name="Image URL" Target="ZYNTHIAN_IMAGE_URL" Default="" Mode="" Description="Optional explicit official image archive URL" Type="Variable" Display="advanced" Required="false" Mask="false"/>
-  <Config Name="Expand Disk GB" Target="DISK_EXPAND_GB" Default="" Mode="" Description="Optional one-time grow amount for persistent image" Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="USB Soundcard passthrough (optional)" Target="/dev/snd" Default="" Mode="rw" Description="Optional host path for USB audio passthrough" Type="Path" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="USB MIDI passthrough (optional)" Target="/dev/bus/usb" Default="" Mode="rw" Description="Optional host USB bus path for MIDI passthrough" Type="Path" Display="advanced" Required="false" Mask="false"/>
 </Container>

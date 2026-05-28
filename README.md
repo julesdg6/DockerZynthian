@@ -10,11 +10,11 @@ Run the **official ZynthianOS Raspberry Pi image** inside Docker/Unraid using QE
 - Primary target: **x86_64 Unraid**.
 - Also supports standard Docker / docker compose on Linux.
 - Emulation target:
-  - `pi4` (default, practical target)
-  - `pi3` (minimum supported)
+  - `pi3` (default, validated)
+  - `pi4` (used when supported by host QEMU)
   - `pi5` currently falls back to `pi4` (QEMU support is limited)
 - Persistent state via `/data/zynthian.img`.
-- Configurable RAM via `MEMORY_MB`.
+- Configurable RAM via `MEMORY_MB` (raspi3 is clamped to 1024MB by QEMU rules).
 - QEMU forwards guest services to fixed container ports:
   - SSH guest `22` -> container `2222`
   - Webconf / web UI guest `80` -> container `8080`
@@ -86,8 +86,10 @@ Use this if you prefer not to use Compose or want full control over every flag.
    docker run --rm -it \
      --name dockerzynthian \
      --privileged \
-     -e MEMORY_MB=3072 \
-     -e PI_MODEL=pi4 \
+     -e PI_MODEL=pi3 \
+     -e MEMORY_MB=1024 \
+     -e DISK_SIZE_GB=16 \
+     -e EMULATION_STUBS=1 \
      -e SSH_PORT=2222 \
      -e WEBCONF_PORT=8080 \
      -e HTTPS_PORT=8443 \
@@ -116,8 +118,10 @@ docker pull julesdg6/dockerzynthian:latest
 docker run --rm -it \
   --name dockerzynthian \
   --privileged \
-  -e MEMORY_MB=3072 \
-  -e PI_MODEL=pi4 \
+  -e PI_MODEL=pi3 \
+  -e MEMORY_MB=1024 \
+  -e DISK_SIZE_GB=16 \
+  -e EMULATION_STUBS=1 \
   -v dockerzynthian-data:/data \
   -p 2222:2222 \
   -p 8080:8080 \
@@ -135,6 +139,12 @@ The container entrypoint (`scripts/run-qemu.sh`) does:
 2. Extract and prepare raw disk image (`scripts/prepare-image.sh`).
 3. Boot QEMU with Raspberry Pi model emulation.
 
+Helper scripts:
+
+- `scripts/reset-image.sh` (`--all` also removes downloads cache)
+- `scripts/check-qemu-support.sh` (prints supported raspi machines + recommended `PI_MODEL`)
+- `scripts/resize-image.sh` (resizes an existing raw image to `DISK_SIZE_GB`)
+
 ## Unraid
 
 Template is included at `unraid/DockerZynthian.xml`. The Zynthian logo (`docs/icon.png`) is referenced by the template and displayed automatically in the Unraid Docker tab.
@@ -146,20 +156,59 @@ See docs:
 - `docs/usb-passthrough.md`
 - `docs/troubleshooting.md`
 
-## Important limitations (honest status)
+## Confirmed current status
+
+Working:
+
+- Boots official ZynthianOS image automatically on first run.
+- SSH works through host port `2222`.
+- Webconf works through host port `8080` when emulation stubs are enabled.
+- Persistent storage works via `/data/zynthian.img`.
+- Pi3 / `raspi3b` emulation works.
+
+Known limitations:
 
 - No claim of GPIO/HAT compatibility.
 - No claim of Pi GPU/display acceleration.
 - No claim of hard real-time audio performance.
-- Pi 5 is **not** validated; mapped to pi4 fallback currently.
-- USB audio/MIDI passthrough can work depending on host privileges, device permissions, and guest support.
+- Pi4/Pi5 depend on host QEMU machine support.
+- raspi3b is limited to 1GB RAM in QEMU.
+- USB audio is not configured yet.
+- USB MIDI is not configured yet.
+- GPIO/HAT/display hardware is emulated/stubbed, not real hardware.
+- Webconf requires emulation stubs when I2C devices are absent.
 
 ## Useful environment variables
 
-- `MEMORY_MB` (default `2048`)
-- `PI_MODEL` (`pi3`, `pi4`, `pi5`)
+- `MEMORY_MB` (default `1024`, auto-clamped on raspi3*)
+- `PI_MODEL` (`pi3`, `pi4`, `pi5`, with auto machine fallback)
+- `DISK_SIZE_GB` (default `16`, power-of-two target)
+- `EMULATION_STUBS` (`1` enables guest I2C/i2cdetect stubs for Webconf)
+- `PUID`, `PGID` (default `99:100`, ownership fix for `/data`)
 - `ZYNTHIAN_IMAGE_URL` (optional explicit image archive URL)
 - `SSH_PORT`, `WEBCONF_PORT`, `HTTPS_PORT`, `NOVNC_PORT`, `VNC_PORT` (host publish ports in compose)
-- `DISK_EXPAND_GB` (optional, expand persistent image)
 - `DATA_DIR`, `DOWNLOAD_DIR`, `IMAGE_PATH`, `BOOT_DIR` (advanced path overrides; defaults under `/data`)
 - `ZYNTHIAN_DATA_PATH` (compose host bind path for container `/data`, default `./data`)
+
+## First run quickstart
+
+```bash
+docker compose up --build
+```
+
+or
+
+```bash
+docker run -it --privileged \
+  -e PI_MODEL=pi3 \
+  -e MEMORY_MB=1024 \
+  -e DISK_SIZE_GB=16 \
+  -e EMULATION_STUBS=1 \
+  -v "$(pwd)/data:/data" \
+  -p 2222:2222 \
+  -p 8080:8080 \
+  -p 8443:8443 \
+  -p 6080:6080 \
+  -p 5900:5900 \
+  dockerzynthian
+```
