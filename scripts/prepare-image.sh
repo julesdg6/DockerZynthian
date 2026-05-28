@@ -257,7 +257,9 @@ fi
 
 apply_emulation_stubs
 pick_owner_ids
-chown -R "${PUID}:${PGID}" "${DATA_DIR}" 2>/dev/null || true
+if ! chown -R "${PUID}:${PGID}" "${DATA_DIR}" 2>/dev/null; then
+  echo "WARNING: Failed to apply ownership ${PUID}:${PGID} to ${DATA_DIR}." >&2
+fi
 
 echo "Downloaded archive path: ${ARCHIVE_PATH:-<existing image reused>}"
 echo "Extracted raw size: ${EXTRACTED_SIZE_BYTES} bytes"
