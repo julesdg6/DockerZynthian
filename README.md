@@ -196,6 +196,21 @@ Known limitations:
 - `DATA_DIR`, `DOWNLOAD_DIR`, `IMAGE_PATH`, `BOOT_DIR` (advanced path overrides; defaults under `/data`)
 - `ZYNTHIAN_DATA_PATH` (compose host bind path for container `/data`, default `./data`)
 
+### Emulate Pi 4 with 4GB RAM
+
+Set:
+
+- `PI_MODEL=pi4`
+- `MEMORY_MB=4096`
+
+Example with compose:
+
+```bash
+PI_MODEL=pi4 MEMORY_MB=4096 docker compose up --build
+```
+
+If your host QEMU does not support `raspi4b`, the container will warn and fall back to Pi 3 emulation (which is limited to 1024MB).
+
 ## First run quickstart
 
 ```bash

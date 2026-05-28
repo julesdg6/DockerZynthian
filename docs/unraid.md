@@ -42,6 +42,13 @@ After a successful download the icon will appear automatically — no reboot req
 - `PUID=99`
 - `PGID=100`
 
+To emulate **Pi 4 with 4GB RAM**, set:
+
+- `PI_MODEL=pi4`
+- `MEMORY_MB=4096`
+
+If Unraid host QEMU lacks `raspi4b`, runtime will fall back to Pi 3 (1024MB max).
+
 Expose/adjust ports as needed:
 
 - SSH port (`2222`)
