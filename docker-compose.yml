@@ -5,6 +5,10 @@ services:
     privileged: true
     restart: unless-stopped
     environment:
+      DATA_DIR: ${DATA_DIR:-/data}
+      DOWNLOAD_DIR: ${DOWNLOAD_DIR:-/data/downloads}
+      IMAGE_PATH: ${IMAGE_PATH:-/data/zynthian.img}
+      BOOT_DIR: ${BOOT_DIR:-/data/bootfiles}
       MEMORY_MB: ${MEMORY_MB:-2048}
       PI_MODEL: ${PI_MODEL:-pi4}
       SSH_PORT: ${SSH_PORT:-2222}
@@ -15,7 +19,7 @@ services:
       ZYNTHIAN_IMAGE_URL: ${ZYNTHIAN_IMAGE_URL:-}
       DISK_EXPAND_GB: ${DISK_EXPAND_GB:-}
     volumes:
-      - ./data:/data
+      - ${ZYNTHIAN_DATA_PATH:-./data}:/data
       # Optional USB passthrough for audio/MIDI:
       # - /dev/bus/usb:/dev/bus/usb
     ports:

@@ -47,7 +47,7 @@ Run the **official ZynthianOS Raspberry Pi image** inside Docker/Unraid using QE
    docker compose up --build
    ```
 
-   Run compose from the repository root so `./data` mounts correctly.
+   Run compose from the repository root so `${ZYNTHIAN_DATA_PATH:-./data}` mounts correctly.
 
 3. **On first start** the container automatically downloads and prepares the official ZynthianOS Raspberry Pi image. This takes several minutes depending on your connection speed. Watch the logs for progress:
 
@@ -161,3 +161,5 @@ See docs:
 - `ZYNTHIAN_IMAGE_URL` (optional explicit image archive URL)
 - `SSH_PORT`, `WEBCONF_PORT`, `HTTPS_PORT`, `NOVNC_PORT`, `VNC_PORT` (host publish ports in compose)
 - `DISK_EXPAND_GB` (optional, expand persistent image)
+- `DATA_DIR`, `DOWNLOAD_DIR`, `IMAGE_PATH`, `BOOT_DIR` (advanced path overrides; defaults under `/data`)
+- `ZYNTHIAN_DATA_PATH` (compose host bind path for container `/data`, default `./data`)

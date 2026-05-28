@@ -9,10 +9,12 @@
    ```
 3. Keep **Privileged** set to `true`.
 4. Set the **AppData** path to `/mnt/user/appdata/dockerzynthian` (default).
-5. Adjust **RAM MB** and **Pi Model** as needed (see recommended settings below).
-6. Click **Apply** and wait for the container to pull the image.
-7. On first start the container downloads and prepares the ZynthianOS image — this may take several minutes depending on your connection speed.
-8. Open the Web UI at `http://<unraid-ip>:8080`.
+5. (Optional) set **Download Cache** to a separate persistent folder if you want archive caching outside the main AppData tree.
+6. (Optional, advanced) override `DOWNLOAD_DIR`, `IMAGE_PATH`, or `BOOT_DIR` template variables for custom layout.
+7. Adjust **RAM MB** and **Pi Model** as needed (see recommended settings below).
+8. Click **Apply** and wait for the container to pull the image.
+9. On first start the container downloads and prepares the ZynthianOS image — this may take several minutes depending on your connection speed.
+10. Open the Web UI at `http://<unraid-ip>:8080`.
 
 ## Adding the Zynthian icon on Unraid 7
 
