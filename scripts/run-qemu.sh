@@ -54,6 +54,18 @@ case "${PI_MODEL}" in
     ;;
 esac
 
+# Detect if the preferred QEMU machine is supported; automatically fall back if not.
+if [[ "${MACHINE}" == "raspi4b" ]]; then
+  if ! qemu-system-aarch64 -machine help 2>&1 | grep -qw "raspi4b"; then
+    echo "WARNING: raspi4b is not supported by this QEMU installation." >&2
+    echo "WARNING: Falling back to raspi3b (degraded emulation: Pi 3 instead of Pi 4)." >&2
+    echo "WARNING: For full Pi 4 emulation, install QEMU >= 6.2 with raspi4b support." >&2
+    MACHINE="raspi3b"
+    CPU="cortex-a53"
+    DTB_CANDIDATES=("${BOOT_DIR}/bcm2710-rpi-3-b-plus.dtb" "${BOOT_DIR}/bcm2710-rpi-3-b.dtb")
+  fi
+fi
+
 DTB=""
 for candidate in "${DTB_CANDIDATES[@]}"; do
   if [[ -f "${candidate}" ]]; then
