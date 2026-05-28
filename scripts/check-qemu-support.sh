@@ -26,6 +26,7 @@ fi
 
 if printf '%s\n' "${SUPPORTED}" | grep -qw "raspi4b"; then
   echo "Recommended PI_MODEL=pi4"
+  echo "For Pi 4 (4GB), set MEMORY_MB=4096"
 elif printf '%s\n' "${SUPPORTED}" | grep -qw "raspi3b"; then
   echo "Recommended PI_MODEL=pi3"
 else
