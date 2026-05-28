@@ -30,7 +30,19 @@ DockerZynthian wraps a QEMU VM inside a container and boots an official Zynthian
 
 QEMU uses user-mode networking with host forwards to expose services.
 
+## Display model
+
+By default QEMU runs headless (`DISPLAY_MODE=none`).  Two optional display paths
+are available — see [display.md](display.md) for full details.
+
+- `DISPLAY_MODE=vnc` — QEMU's built-in VNC server (container port 5901).
+  Shows the QEMU machine display (blank on raspi because there is no emulated GPU).
+- `ENABLE_FAKE_DISPLAY=1` — installs a guest systemd service that starts Xvfb
+  on display `:0` when no real framebuffer is detected, giving Zynthian UI and
+  noVNC something to attach to.
+
 ## Honest limitations
 
 - Pi 4 support is the primary target; Pi 3 is used automatically as a fallback when `raspi4b` is not supported by the host QEMU; Pi 5 is not validated.
 - GPIO/HAT, GPU acceleration, and hard real-time audio are out of scope.
+- QEMU does not emulate Raspberry Pi VideoCore/HDMI; `DISPLAY_MODE=vnc` provides a QEMU-level VNC debug view, not true HDMI output.

@@ -11,17 +11,21 @@ PI_MODEL="${PI_MODEL:-pi3}"
 DISK_SIZE_GB="${DISK_SIZE_GB:-16}"
 EMULATION_STUBS="${EMULATION_STUBS:-0}"
 QEMU_BIN="${QEMU_BIN:-qemu-system-aarch64}"
+DISPLAY_MODE="${DISPLAY_MODE:-none}"
+ENABLE_FAKE_DISPLAY="${ENABLE_FAKE_DISPLAY:-0}"
 
 SSH_PORT="${SSH_PORT:-2222}"
 WEBCONF_PORT="${WEBCONF_PORT:-8080}"
 HTTPS_PORT="${HTTPS_PORT:-8443}"
 NOVNC_PORT="${NOVNC_PORT:-6080}"
 VNC_PORT="${VNC_PORT:-5900}"
+DISPLAY_VNC_PORT="${DISPLAY_VNC_PORT:-5901}"
 QEMU_SSH_PORT=2222
 QEMU_WEBCONF_PORT=8080
 QEMU_HTTPS_PORT=8443
 QEMU_NOVNC_PORT=6080
 QEMU_VNC_PORT=5900
+QEMU_DISPLAY_VNC_PORT=5901
 
 mkdir -p "${DATA_DIR}" "${DOWNLOAD_DIR}" "${BOOT_DIR}"
 
@@ -153,6 +157,36 @@ NETDEV="user,id=net0,hostfwd=tcp::${QEMU_SSH_PORT}-:22,hostfwd=tcp::${QEMU_WEBCO
 
 IMAGE_VIRTUAL_SIZE="$(qemu-img info -f raw "${IMAGE_PATH}" | awk -F'[()]' '/virtual size:/ {gsub(/ bytes/, "", $2); print $2; exit}')"
 
+KERNEL_CMDLINE="rw root=/dev/mmcblk0p2 rootwait fsck.repair=yes console=ttyAMA0,115200 console=tty1 loglevel=7"
+if [[ "${ENABLE_FAKE_DISPLAY}" == "1" ]]; then
+  KERNEL_CMDLINE="${KERNEL_CMDLINE} drm_kms_helper.fbdev_emulation=1"
+fi
+
+# Build QEMU display flags.
+# DISPLAY_MODE=none  : headless (-nographic); no QEMU display VNC server.
+# DISPLAY_MODE=vnc   : QEMU built-in VNC server on container port 5901 (VNC display :1).
+#                      NOTE: raspi machines have no emulated GPU, so the VNC image will be
+#                      blank/black.  This is still useful for debug and may help guest
+#                      framebuffer detection in some kernel configurations.
+# DISPLAY_MODE=gtk   : GTK window; only usable when a host DISPLAY is forwarded into
+#                      the container (e.g. via X11 socket bind-mount).
+DISPLAY_QEMU_FLAGS=()
+case "${DISPLAY_MODE}" in
+  none)
+    DISPLAY_QEMU_FLAGS=(-nographic)
+    ;;
+  vnc)
+    DISPLAY_QEMU_FLAGS=(-display "vnc=0.0.0.0:1" -serial mon:stdio)
+    ;;
+  gtk)
+    DISPLAY_QEMU_FLAGS=(-display gtk -serial mon:stdio)
+    ;;
+  *)
+    echo "Unsupported DISPLAY_MODE=${DISPLAY_MODE}. Use none, vnc, or gtk." >&2
+    exit 1
+    ;;
+esac
+
 echo "Booting official ZynthianOS image with QEMU (${PI_MODEL} -> ${MACHINE})"
 echo "QEMU binary: ${QEMU_BIN}"
 echo "Selected machine type: ${MACHINE}"
@@ -160,9 +194,15 @@ echo "Image: ${IMAGE_PATH}"
 echo "Image virtual size: ${IMAGE_VIRTUAL_SIZE} bytes"
 echo "DISK_SIZE_GB target: ${DISK_SIZE_GB}"
 echo "EMULATION_STUBS: ${EMULATION_STUBS}"
+echo "DISPLAY_MODE: ${DISPLAY_MODE}"
+echo "ENABLE_FAKE_DISPLAY: ${ENABLE_FAKE_DISPLAY}"
 echo "RAM: ${MEMORY_MB} MB"
 echo "Container forwards: ${QEMU_SSH_PORT}->22 ${QEMU_WEBCONF_PORT}->80 ${QEMU_HTTPS_PORT}->443 ${QEMU_NOVNC_PORT}->6080 ${QEMU_VNC_PORT}->5900"
 echo "Published host ports: SSH:${SSH_PORT} WEB:${WEBCONF_PORT} HTTPS:${HTTPS_PORT} noVNC:${NOVNC_PORT} VNC:${VNC_PORT}"
+if [[ "${DISPLAY_MODE}" == "vnc" ]]; then
+  echo "QEMU display VNC: container port ${QEMU_DISPLAY_VNC_PORT} -> host port ${DISPLAY_VNC_PORT}"
+  echo "  Connect to QEMU display: VNC viewer to HOST:${DISPLAY_VNC_PORT}"
+fi
 echo "Expected access:"
 echo "  SSH: ssh -p ${SSH_PORT} root@HOST"
 echo "  Webconf: http://HOST:${WEBCONF_PORT}"
@@ -178,8 +218,7 @@ exec "${QEMU_BIN}" \
   -kernel "${KERNEL}" \
   -dtb "${DTB}" \
   -drive "if=sd,format=raw,file=${IMAGE_PATH}" \
-  -append "rw root=/dev/mmcblk0p2 rootwait fsck.repair=yes console=ttyAMA0,115200 console=tty1 loglevel=7" \
+  -append "${KERNEL_CMDLINE}" \
   -netdev "${NETDEV}" \
   -device usb-net,netdev=net0 \
-  -serial mon:stdio \
-  -nographic
+  "${DISPLAY_QEMU_FLAGS[@]}"

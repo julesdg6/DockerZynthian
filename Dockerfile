@@ -29,6 +29,6 @@ RUN chmod +x /usr/local/bin/*.sh
 
 VOLUME ["/data"]
 
-EXPOSE 2222 8080 8443 6080 5900
+EXPOSE 2222 8080 8443 6080 5900 5901
 
 ENTRYPOINT ["/usr/local/bin/run-qemu.sh"]

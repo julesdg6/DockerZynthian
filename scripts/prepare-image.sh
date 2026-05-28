@@ -7,6 +7,7 @@ IMAGE_PATH="${IMAGE_PATH:-${DATA_DIR}/zynthian.img}"
 BOOT_DIR="${BOOT_DIR:-${DATA_DIR}/bootfiles}"
 DISK_SIZE_GB="${DISK_SIZE_GB:-16}"
 EMULATION_STUBS="${EMULATION_STUBS:-0}"
+ENABLE_FAKE_DISPLAY="${ENABLE_FAKE_DISPLAY:-0}"
 DEFAULT_PUID=99
 DEFAULT_PGID=100
 
@@ -148,6 +149,125 @@ EOF
   echo "Installed emulation stubs in guest image (EMULATION_STUBS=1)."
 }
 
+apply_fake_display_stubs() {
+  local root_start_sector root_offset root_mount
+
+  if [[ "${ENABLE_FAKE_DISPLAY}" != "1" ]]; then
+    return 0
+  fi
+
+  root_start_sector="$(partition_start_sector "${IMAGE_PATH}" 2)"
+  if [[ -z "${root_start_sector}" ]]; then
+    echo "WARNING: Could not detect root partition start sector for fake display stubs." >&2
+    return 0
+  fi
+
+  root_offset="$((root_start_sector * 512))"
+  root_mount="$(mktemp -d)"
+
+  if ! mount -o "loop,rw,offset=${root_offset}" "${IMAGE_PATH}" "${root_mount}" 2>/dev/null; then
+    echo "WARNING: Could not mount root partition to install fake display stubs." >&2
+    rmdir "${root_mount}" 2>/dev/null || true
+    return 0
+  fi
+
+  mkdir -p "${root_mount}/usr/local/sbin" \
+           "${root_mount}/etc/systemd/system/multi-user.target.wants"
+
+  # Guest helper: start Xvfb on :0 if no real framebuffer/display is detected.
+  # Zynthian UI and noVNC require a display; this provides a minimal virtual one.
+  # QEMU does not emulate Raspberry Pi HDMI/VideoCore, so /dev/fb0 is typically
+  # absent in the QEMU raspi guest.  Xvfb supplies a software framebuffer so
+  # that X11-dependent services (zynthian-ui, x11vnc, noVNC) can start.
+  cat > "${root_mount}/usr/local/sbin/dockerzynthian-fake-display.sh" <<'EOF'
+#!/bin/sh
+set -eu
+
+# Diagnostics: log detected display/framebuffer state.
+echo "=== DockerZynthian fake display diagnostics ===" >&2
+ls /dev/fb* 2>/dev/null && echo "framebuffer devices found" >&2 || echo "no /dev/fb* found" >&2
+ls /dev/dri/ 2>/dev/null && echo "DRI devices found" >&2 || echo "no /dev/dri found" >&2
+pgrep -x Xorg  >/dev/null 2>&1 && echo "Xorg running" >&2  || echo "Xorg not running" >&2
+pgrep -x Xvfb  >/dev/null 2>&1 && echo "Xvfb running" >&2  || echo "Xvfb not running" >&2
+echo "===============================================" >&2
+
+# If a real framebuffer exists skip virtual display setup.
+if [ -e /dev/fb0 ] || [ -e /dev/dri/card0 ]; then
+  echo "Real framebuffer/DRM device detected; skipping Xvfb startup." >&2
+  exit 0
+fi
+
+# If an X server is already running on :0 nothing more is needed.
+if pgrep -x Xorg >/dev/null 2>&1 || pgrep -x Xvfb >/dev/null 2>&1; then
+  echo "X server already running; skipping Xvfb startup." >&2
+  exit 0
+fi
+
+if ! command -v Xvfb >/dev/null 2>&1; then
+  echo "WARNING: Xvfb not found. Install xvfb inside the guest for fake display support." >&2
+  echo "  Run: apt-get install -y xvfb" >&2
+  exit 0
+fi
+
+# Start Xvfb on display :0 with a 1280x720 24-bit framebuffer.
+Xvfb :0 -screen 0 1280x720x24 -ac +extension GLX +render -noreset &
+XVFB_PID=$!
+
+# Poll for the X11 socket rather than using a fixed sleep.
+SOCKET=/tmp/.X11-unix/X0
+TIMEOUT=10
+i=0
+while [ "${i}" -lt "${TIMEOUT}" ]; do
+  if [ -S "${SOCKET}" ]; then
+    break
+  fi
+  sleep 1
+  i=$((i + 1))
+done
+
+if ! kill -0 "${XVFB_PID}" 2>/dev/null || [ ! -S "${SOCKET}" ]; then
+  echo "WARNING: Xvfb failed to start within ${TIMEOUT}s (socket ${SOCKET} not found)." >&2
+  exit 0
+fi
+
+echo "Xvfb started on :0 (PID ${XVFB_PID}, screen 1280x720x24)." >&2
+
+# Persist DISPLAY in system environment so subsequent services inherit it.
+# Use sed to replace an existing line or append if absent (idempotent).
+if grep -q '^DISPLAY=' /etc/environment 2>/dev/null; then
+  sed -i 's|^DISPLAY=.*|DISPLAY=:0|' /etc/environment
+else
+  echo 'DISPLAY=:0' >> /etc/environment
+fi
+EOF
+
+  chmod +x "${root_mount}/usr/local/sbin/dockerzynthian-fake-display.sh"
+
+  cat > "${root_mount}/etc/systemd/system/dockerzynthian-fake-display.service" <<'EOF'
+[Unit]
+Description=DockerZynthian virtual display (Xvfb)
+After=local-fs.target
+Before=display-manager.target graphical.target
+ConditionPathExists=/usr/local/sbin/dockerzynthian-fake-display.sh
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/dockerzynthian-fake-display.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  ln -sf ../dockerzynthian-fake-display.service \
+    "${root_mount}/etc/systemd/system/multi-user.target.wants/dockerzynthian-fake-display.service"
+
+  sync
+  umount "${root_mount}" 2>/dev/null || true
+  rmdir "${root_mount}" 2>/dev/null || true
+  echo "Installed fake display stubs in guest image (ENABLE_FAKE_DISPLAY=1)."
+}
+
 find_existing_archive() {
   local archive
   archive="$(ls -1t \
@@ -256,6 +376,7 @@ if [[ ! -f "${BOOT_DIR}/kernel8.img" ]]; then
 fi
 
 apply_emulation_stubs
+apply_fake_display_stubs
 pick_owner_ids
 if ! chown -R "${PUID}:${PGID}" "${DATA_DIR}" 2>/dev/null; then
   echo "WARNING: Failed to apply ownership ${PUID}:${PGID} to ${DATA_DIR}." >&2
