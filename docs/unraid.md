@@ -11,7 +11,7 @@
 4. Set the **AppData** path to `/mnt/user/appdata/dockerzynthian` (default).
 5. (Optional) set **Download Cache** to a separate persistent folder if you want archive caching outside the main AppData tree.
 6. (Optional, advanced) override `DOWNLOAD_DIR`, `IMAGE_PATH`, or `BOOT_DIR` template variables for custom layout.
-7. Adjust **RAM MB** and **Pi Model** as needed (see recommended settings below).
+7. Adjust **RAM MB**, **Pi Model**, **Disk Size GB**, **Emulation Stubs**, **PUID**, and **PGID** as needed (see recommended settings below).
 8. Click **Apply** and wait for the container to pull the image.
 9. On first start the container downloads and prepares the ZynthianOS image — this may take several minutes depending on your connection speed.
 10. Open the Web UI at `http://<unraid-ip>:8080`.
@@ -34,8 +34,26 @@ After a successful download the icon will appear automatically — no reboot req
 
 ## Recommended initial settings
 
-- `MEMORY_MB=2048` (increase to 3072/4096 if host allows)
-- `PI_MODEL=pi4`
+- `AppData=/mnt/user/appdata/dockerzynthian`
+- `MEMORY_MB=1024`
+- `PI_MODEL=pi3`
+- `DISK_SIZE_GB=16`
+- `EMULATION_STUBS=1`
+- `PUID=99`
+- `PGID=100`
+
+Expose/adjust ports as needed:
+
+- SSH port (`2222`)
+- Webconf HTTP port (`8080`)
+- HTTPS port (`8443`)
+- noVNC port (`6080`)
+- VNC port (`5900`)
+
+Optional passthrough paths:
+
+- USB soundcard path (`/dev/snd`)
+- USB MIDI path (`/dev/bus/usb`)
 
 ## Notes
 

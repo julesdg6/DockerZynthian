@@ -9,10 +9,14 @@ DockerZynthian wraps a QEMU VM inside a container and boots an official Zynthian
 2. `prepare-image.sh`
    - extracts `.img` from archive
    - stores persistent disk at `${IMAGE_PATH}` (default `/data/zynthian.img`)
+   - auto-resizes image to `${DISK_SIZE_GB}` (default `16G`, power-of-two)
    - extracts boot files (`kernel8.img`, `*.dtb`) from partition 1 to `${BOOT_DIR}` (default `/data/bootfiles`)
+   - optionally installs guest emulation stubs when `EMULATION_STUBS=1`
 3. `run-qemu.sh`
    - starts `qemu-system-aarch64`
-   - emulates `raspi4b` by default; detects supported machines via `qemu-system-aarch64 -machine help` and automatically falls back to `raspi3b` (with a warning) when `raspi4b` is unavailable
+   - detects supported machines via `qemu-system-aarch64 -machine help`
+   - prefers `raspi4b`, then `raspi3b`, then `raspi3ap` and auto-falls back with a warning when needed
+   - clamps raspi3 RAM to 1024MB to prevent QEMU startup failures
    - forwards guest service ports to container ports
 
 ## Persistence
