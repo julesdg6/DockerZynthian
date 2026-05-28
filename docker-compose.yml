@@ -13,6 +13,8 @@ services:
       PI_MODEL: ${PI_MODEL:-pi3}
       DISK_SIZE_GB: ${DISK_SIZE_GB:-16}
       EMULATION_STUBS: ${EMULATION_STUBS:-1}
+      ENABLE_FAKE_DISPLAY: ${ENABLE_FAKE_DISPLAY:-0}
+      DISPLAY_MODE: ${DISPLAY_MODE:-none}
       PUID: ${PUID:-99}
       PGID: ${PGID:-100}
       SSH_PORT: ${SSH_PORT:-2222}
@@ -20,6 +22,7 @@ services:
       HTTPS_PORT: ${HTTPS_PORT:-8443}
       NOVNC_PORT: ${NOVNC_PORT:-6080}
       VNC_PORT: ${VNC_PORT:-5900}
+      DISPLAY_VNC_PORT: ${DISPLAY_VNC_PORT:-5901}
       ZYNTHIAN_IMAGE_URL: ${ZYNTHIAN_IMAGE_URL:-}
     volumes:
       - ${ZYNTHIAN_DATA_PATH:-./data}:/data
@@ -31,3 +34,6 @@ services:
       - "${HTTPS_PORT:-8443}:8443"
       - "${NOVNC_PORT:-6080}:6080"
       - "${VNC_PORT:-5900}:5900"
+      # Port 5901 is the QEMU built-in VNC display server (DISPLAY_MODE=vnc only).
+      # It is NOT the Zynthian guest VNC (which is on port 5900 above).
+      - "${DISPLAY_VNC_PORT:-5901}:5901"

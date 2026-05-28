@@ -62,6 +62,7 @@ Run the **official ZynthianOS Raspberry Pi image** inside Docker/Unraid using QE
    | Webconf / web UI   | `http://localhost:8080`                |
    | noVNC (if active)  | `http://localhost:6080`                |
    | SSH into guest     | `ssh -p 2222 root@localhost`           |
+   | QEMU VNC display   | VNC viewer to `localhost:5901` (requires `DISPLAY_MODE=vnc`) |
 
 5. **Stop and restart:**
 
@@ -177,6 +178,8 @@ Known limitations:
 - USB MIDI is not configured yet.
 - GPIO/HAT/display hardware is emulated/stubbed, not real hardware.
 - Webconf requires emulation stubs when I2C devices are absent.
+- QEMU does not emulate Raspberry Pi HDMI/VideoCore; `DISPLAY_MODE=vnc` gives a blank/black QEMU-level VNC image.
+- Zynthian UI/noVNC require a framebuffer or virtual display; use `ENABLE_FAKE_DISPLAY=1` with `xvfb` installed in the guest (see [docs/display.md](docs/display.md)).
 
 ## Useful environment variables
 
@@ -184,6 +187,9 @@ Known limitations:
 - `PI_MODEL` (`pi3`, `pi4`, `pi5`, with auto machine fallback)
 - `DISK_SIZE_GB` (default `16`, power-of-two target)
 - `EMULATION_STUBS` (`1` enables guest I2C/i2cdetect stubs for Webconf)
+- `DISPLAY_MODE` (`none` (default) / `vnc` / `gtk` — controls QEMU display output; see [docs/display.md](docs/display.md))
+- `ENABLE_FAKE_DISPLAY` (`1` installs a guest Xvfb service for virtual framebuffer; see [docs/display.md](docs/display.md))
+- `DISPLAY_VNC_PORT` (host port for QEMU display VNC when `DISPLAY_MODE=vnc`, default `5901`)
 - `PUID`, `PGID` (default `99:100`, ownership fix for `/data`)
 - `ZYNTHIAN_IMAGE_URL` (optional explicit image archive URL)
 - `SSH_PORT`, `WEBCONF_PORT`, `HTTPS_PORT`, `NOVNC_PORT`, `VNC_PORT` (host publish ports in compose)
